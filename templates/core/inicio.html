@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block conteudo %}
+<section class="hero py-5">
+    <div class="container py-md-4">
+        <div class="row align-items-center g-4">
+            <div class="col-lg-7">
+                <span class="badge text-bg-success mb-3">Controle de estoque para cozinhas</span>
+                <h1 class="display-5 fw-bold">Menos desperdício, mais controle.</h1>
+                <p class="lead text-body-secondary">
+                    O Guardião da Cozinha acompanha o que entra e sai do estoque, avisa quando um
+                    produto está acabando ou perto de vencer e gera a lista de compras sozinho.
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'admin:index' %}" class="btn btn-success btn-lg">
+                        <i class="bi bi-speedometer2"></i> Acessar a administração</a>
+                    <span class="btn btn-outline-secondary btn-lg disabled">
+                        <i class="bi bi-person"></i> Área do usuário (em breve)</span>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <div class="row g-3 text-center">
+                    <div class="col-4"><div class="card h-100"><div class="card-body">
+                        <div class="fs-2 fw-bold">{{ n_cozinhas }}</div><div class="small text-body-secondary">cozinhas</div>
+                    </div></div></div>
+                    <div class="col-4"><div class="card h-100"><div class="card-body">
+                        <div class="fs-2 fw-bold">{{ n_produtos }}</div><div class="small text-body-secondary">produtos</div>
+                    </div></div></div>
+                    <div class="col-4"><div class="card h-100"><div class="card-body">
+                        <div class="fs-2 fw-bold">{{ n_lotes }}</div><div class="small text-body-secondary">lotes em estoque</div>
+                    </div></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="container py-5">
+    <div class="row g-4">
+        <div class="col-md-6 col-lg-3">
+            <span class="icone-recurso mb-3"><i class="bi bi-box-seam"></i></span>
+            <h2 class="h5">Lotes e validades</h2>
+            <p class="text-body-secondary">Cada entrada vira um lote com validade e local próprios: despensa, geladeira ou freezer.</p>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <span class="icone-recurso mb-3"><i class="bi bi-arrow-left-right"></i></span>
+            <h2 class="h5">Movimentações rastreáveis</h2>
+            <p class="text-body-secondary">Toda entrada, saída e descarte fica registrada com o responsável e a data.</p>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <span class="icone-recurso mb-3"><i class="bi bi-bell"></i></span>
+            <h2 class="h5">Alertas</h2>
+            <p class="text-body-secondary">Produtos abaixo do estoque mínimo e lotes que vencem em até 7 dias aparecem no painel.</p>
+        </div>
+        <div class="col-md-6 col-lg-3">
+            <span class="icone-recurso mb-3"><i class="bi bi-cart-check"></i></span>
+            <h2 class="h5">Lista de compras</h2>
+            <p class="text-body-secondary">Gere a lista de reposição a partir do que está faltando, com fornecedor e custo estimado.</p>
+        </div>
+    </div>
+</section>
+{% endblock %}

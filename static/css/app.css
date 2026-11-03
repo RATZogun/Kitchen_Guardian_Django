@@ -1,0 +1,31 @@
+/* Ajustes sobre o Bootstrap 5.3. As cores seguem o verde-oliva do admin. */
+:root {
+    --kg-verde: #4d7c0f;
+    --kg-verde-claro: #ecfccb;
+}
+
+[data-bs-theme="dark"] {
+    --kg-verde-claro: #1a2e05;
+}
+
+/* Mostra só o ícone do tema para o qual o botão vai trocar */
+[data-bs-theme="light"] .tema-claro-icone,
+[data-bs-theme="dark"] .tema-escuro-icone {
+    display: none;
+}
+
+.hero {
+    background: linear-gradient(135deg, var(--kg-verde-claro), transparent 70%);
+}
+
+.icone-recurso {
+    width: 3rem;
+    height: 3rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: .75rem;
+    background: var(--kg-verde);
+    color: #fff;
+    font-size: 1.4rem;
+}
