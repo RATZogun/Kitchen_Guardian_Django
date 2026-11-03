@@ -1,0 +1,54 @@
+{% extends 'admin/base.html' %}
+{% load i18n unfold %}
+
+{% block title %}Painel | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+    {% include "unfold/helpers/site_branding.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6">
+
+    <div class="flex flex-col gap-1">
+        <h1 class="font-semibold text-xl text-important">Olá, {{ request.user.first_name|default:request.user.username }}</h1>
+        <p class="text-subtle">Situação do estoque de <strong>{{ escopo }}</strong> em {% now "d/m/Y" %}.</p>
+    </div>
+
+    {# ---------- indicadores ---------- #}
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+        {% for kpi in kpis %}
+            {% component "unfold/components/card.html" with href=kpi.link size="md" icon=kpi.icone %}
+                {% component "unfold/components/text.html" %}{{ kpi.titulo }}{% endcomponent %}
+                {% component "unfold/components/title.html" %}{{ kpi.valor }}{% endcomponent %}
+            {% endcomponent %}
+        {% endfor %}
+    </div>
+
+    {# ---------- alertas ---------- #}
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {% component "unfold/components/card.html" with title="Lotes vencidos ou vencendo (RF015)" title_icon="schedule" %}
+            {% if tabela_risco.rows %}
+                {% component "unfold/components/table.html" with table=tabela_risco card_included=1 striped=1 %}{% endcomponent %}
+            {% else %}
+                <p class="text-subtle">Nenhum lote em risco. 🎉</p>
+            {% endif %}
+        {% endcomponent %}
+
+        {% component "unfold/components/card.html" with title="Produtos abaixo do estoque mínimo" title_icon="trending_down" %}
+            {% if tabela_minimo.rows %}
+                {% component "unfold/components/table.html" with table=tabela_minimo card_included=1 striped=1 %}{% endcomponent %}
+            {% else %}
+                <p class="text-subtle">Todos os produtos estão acima do mínimo.</p>
+            {% endif %}
+        {% endcomponent %}
+    </div>
+
+    {# ---------- gráfico ---------- #}
+    {% component "unfold/components/card.html" with title="Movimentações nos últimos 14 dias" title_icon="bar_chart" %}
+        <p class="text-subtle mb-4">{{ n_movs_14d }} movimentação(ões) registrada(s), sendo {{ descartes_14d }} descarte(s).</p>
+        {% component "unfold/components/chart/bar.html" with data=grafico_movimentacoes height=260 %}{% endcomponent %}
+    {% endcomponent %}
+
+</div>
+{% endblock %}
