@@ -2,8 +2,10 @@
 from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
+from django.utils.functional import cached_property
 from django.views.decorators.http import require_POST
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView
 
@@ -30,8 +32,9 @@ class ItemForm(BootstrapMixin, forms.ModelForm):
     def __init__(self, *args, lista, **kwargs):
         super().__init__(*args, **kwargs)
         self.instance.lista = lista
+        # o produto atual do item continua na lista mesmo se tiver sido desativado depois
         self.fields["produto"].queryset = self.fields["produto"].queryset.filter(
-            cozinha=lista.cozinha_id, ativo=True)
+            Q(ativo=True) | Q(pk=self.instance.produto_id), cozinha=lista.cozinha_id)
 
     def clean_produto(self):
         produto = self.cleaned_data["produto"]
@@ -55,7 +58,7 @@ class ListaLista(AreaMixin, ListView):
     paginate_by = 15
 
     def get_queryset(self):
-        qs = super().get_queryset().select_related("cozinha", "criada_por").prefetch_related("itens")
+        qs = super().get_queryset().select_related("cozinha", "criada_por").com_resumo()
         if self.request.GET.get("status") in ListaCompra.Status.values:
             qs = qs.filter(status=self.request.GET["status"])
         return qs
@@ -156,10 +159,10 @@ class ItemCriar(ItemMixin, CreateView):
     template_name = "generico/form.html"
     extra_context = {"titulo": "Adicionar item"}
 
-    def dispatch(self, request, *args, **kwargs):
-        self.lista = get_object_or_404(_listas(request.user), pk=kwargs["lista"]) \
-            if request.user.is_authenticated else None
-        return super().dispatch(request, *args, **kwargs)
+    @cached_property
+    def lista(self):
+        # só é acessado depois que AreaMixin conferiu login e permissão
+        return get_object_or_404(_listas(self.request.user), pk=self.kwargs["lista"])
 
     def form_valid(self, form):
         messages.success(self.request, "Item adicionado.")
@@ -167,7 +170,8 @@ class ItemCriar(ItemMixin, CreateView):
 
 
 class ItemEditar(ItemMixin, UpdateView):
-    permission_required = "compras.change_itemlistacompra"
+    # o operador tem change_itemlistacompra só para marcar itens comprados
+    permission_required = ("compras.change_itemlistacompra", "compras.change_listacompra")
     form_class = ItemForm
     template_name = "generico/form.html"
     extra_context = {"titulo": "Editar item"}

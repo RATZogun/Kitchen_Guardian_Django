@@ -28,12 +28,13 @@ casa). Cada usuário pertence a uma cozinha e enxerga apenas os dados dela.
 | Perfil | Acesso | O que pode fazer |
 |---|---|---|
 | **Administrador** | Admin e área do usuário, todas as cozinhas | Tudo: cozinhas, usuários, perfis, cadastros e estoque |
-| **Gestor** | Admin e área do usuário, só a própria cozinha | Produtos, lotes, locais, listas de compras; registra entradas, saídas e descartes; consulta usuários |
+| **Gestor** | Admin e área do usuário, só a própria cozinha | Produtos, lotes, locais, listas de compras; registra entradas, saídas e descartes; consulta usuários, categorias e fornecedores |
 | **Operador** | Só a área do usuário, só a própria cozinha | Consulta o estoque, registra entradas, saídas e descartes e marca itens comprados |
 
 Quem se cadastra pela tela **Cadastre-se** cria a própria cozinha (já com despensa, geladeira e
 freezer) e vira o **Gestor** dela. Operadores são cadastrados pelo administrador ou pelo gestor
-no ambiente administrativo.
+no ambiente administrativo. Categorias e fornecedores valem para todas as cozinhas, por isso
+só o Administrador os cadastra ou altera; o gestor apenas os consulta.
 
 As permissões de cada perfil ficam em [`apps/contas/perfis.py`](apps/contas/perfis.py) e são
 aplicadas como grupos do Django automaticamente a cada `migrate`.
@@ -98,7 +99,7 @@ recrie-os para os alertas de validade ficarem atuais:
 python manage.py popular_demo --limpar
 ```
 
-Testes automatizados (35 testes: admin, regras de estoque e área do usuário):
+Testes automatizados (43 testes: admin, regras de estoque, área do usuário e regressões):
 
 ```bash
 python manage.py test

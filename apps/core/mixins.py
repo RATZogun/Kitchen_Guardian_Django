@@ -10,7 +10,15 @@ from django.core.exceptions import ValidationError
 from django.db.models import ProtectedError
 from django.shortcuts import redirect
 
-from apps.core.admin_mixins import CAMINHO_COZINHA
+# Caminho até a cozinha a partir de cada modelo usado em formulários e listagens
+CAMINHO_COZINHA = {
+    "cozinha": "pk",
+    "localarmazenamento": "cozinha",
+    "produto": "cozinha",
+    "lote": "produto__cozinha",
+    "listacompra": "cozinha",
+    "usuario": "cozinha",
+}
 
 
 def eh_admin_geral(user):
@@ -63,6 +71,10 @@ class FormCozinhaMixin:
             # a cozinha vem do usuário, antes da validação do formulário
             del form.fields["cozinha"]
             form.instance.cozinha_id = self.request.user.cozinha_id
+        elif "cozinha" in form.fields and form.instance.pk:
+            # trocar a cozinha deixaria lotes, locais e itens apontando para outra cozinha
+            form.fields["cozinha"].disabled = True
+            form.fields["cozinha"].help_text = "A cozinha não pode ser trocada depois do cadastro."
         return form
 
     def form_valid(self, form):

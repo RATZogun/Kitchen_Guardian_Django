@@ -1,8 +1,7 @@
 """Filtros personalizados do admin do estoque."""
 from django.contrib import admin
-from django.db.models import F
 
-from .models import hoje, limite_alerta
+from .models import ABAIXO_DO_MINIMO, hoje, limite_alerta
 
 
 class NivelEstoqueFilter(admin.SimpleListFilter):
@@ -19,9 +18,9 @@ class NivelEstoqueFilter(admin.SimpleListFilter):
         if self.value() == "ZERADO":
             return queryset.filter(saldo=0)
         if self.value() == "BAIXO":
-            return queryset.filter(saldo__lte=F("estoque_minimo"))
+            return queryset.filter(ABAIXO_DO_MINIMO)
         if self.value() == "OK":
-            return queryset.filter(saldo__gt=F("estoque_minimo"))
+            return queryset.exclude(ABAIXO_DO_MINIMO).filter(saldo__gt=0)
         return queryset
 
 
