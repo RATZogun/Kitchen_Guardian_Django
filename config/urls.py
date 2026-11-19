@@ -8,4 +8,8 @@ admin.site.index_title = "Painel"
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("apps.core.urls")),
+    path("conta/", include("apps.contas.urls")),
+    path("estoque/", include("apps.estoque.urls")),
+    path("cozinha/", include("apps.cozinhas.urls")),
+    path("compras/", include("apps.compras.urls")),
 ]

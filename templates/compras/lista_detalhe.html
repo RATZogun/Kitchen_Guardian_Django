@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block titulo %}{{ object.titulo }} · Guardião da Cozinha{% endblock %}
+{% block conteudo %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb"><ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'compras:listas' %}">Listas de compras</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ object.titulo }}</li></ol></nav>
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+        <div>
+            <h1 class="h3 mb-1">{{ object.titulo }} <span class="badge text-bg-secondary fs-6 align-middle">{{ object.get_status_display }}</span></h1>
+            <div class="text-body-secondary small">{{ object.cozinha }}{% if object.data_prevista %} · prevista para {{ object.data_prevista|date:"d/m/Y" }}{% endif %}{% if object.criada_por %} · criada por {{ object.criada_por }}{% endif %}</div>
+            {% if object.observacoes %}<p class="mt-2 mb-0">{{ object.observacoes|linebreaksbr }}</p>{% endif %}
+        </div>
+        <div class="d-flex gap-2">
+            {% if perms.compras.change_listacompra %}<a class="btn btn-outline-secondary" href="{% url 'compras:lista_editar' object.pk %}"><i class="bi bi-pencil"></i> Editar</a>{% endif %}
+            {% if perms.compras.delete_listacompra %}<a class="btn btn-outline-danger" href="{% url 'compras:lista_excluir' object.pk %}"><i class="bi bi-trash"></i></a>{% endif %}
+        </div>
+    </div>
+    <div class="card mb-4">
+        <div class="table-responsive">
+        <table class="table align-middle mb-0">
+            <thead><tr><th style="width: 3rem"></th><th>Produto</th><th class="text-end">Quantidade</th><th class="d-none d-md-table-cell">Fornecedor</th><th class="text-end">Subtotal</th><th></th></tr></thead>
+            <tbody>
+            {% for item in itens %}
+            <tr class="{% if item.comprado %}text-body-secondary{% endif %}">
+                <td>
+                    {% if perms.compras.change_itemlistacompra %}
+                    <form method="post" action="{% url 'compras:item_comprado' item.pk %}">{% csrf_token %}
+                        <button class="btn btn-sm {% if item.comprado %}btn-success{% else %}btn-outline-secondary{% endif %}" type="submit"
+                                title="{% if item.comprado %}Desmarcar{% else %}Marcar como comprado{% endif %}" aria-label="Marcar como comprado"><i class="bi bi-check-lg"></i></button>
+                    </form>
+                    {% elif item.comprado %}<i class="bi bi-check-circle-fill text-success"></i>{% endif %}
+                </td>
+                <td class="{% if item.comprado %}text-decoration-line-through{% endif %}">{{ item.produto.nome }}</td>
+                <td class="text-end">{{ item.quantidade|floatformat:"-3" }} {{ item.produto.unidade }}</td>
+                <td class="d-none d-md-table-cell small">{{ item.fornecedor|default:"-" }}</td>
+                <td class="text-end text-nowrap">R$ {{ item.subtotal|floatformat:"2g" }}</td>
+                <td class="text-end text-nowrap">
+                    {% if perms.compras.change_itemlistacompra %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'compras:item_editar' item.pk %}" title="Editar item"><i class="bi bi-pencil"></i></a>{% endif %}
+                    {% if perms.compras.delete_itemlistacompra %}<a class="btn btn-sm btn-outline-danger" href="{% url 'compras:item_excluir' item.pk %}" title="Remover item"><i class="bi bi-trash"></i></a>{% endif %}
+                </td>
+            </tr>
+            {% empty %}<tr><td colspan="6" class="text-center text-body-secondary py-4">Lista vazia.</td></tr>{% endfor %}
+            </tbody>
+            <tfoot><tr><th colspan="4" class="text-end">Total estimado</th><th class="text-end text-nowrap">R$ {{ object.total_estimado|floatformat:"2g" }}</th><th></th></tr></tfoot>
+        </table>
+        </div>
+    </div>
+    {% if form_item %}
+    <div class="card">
+        <div class="card-header fw-semibold"><i class="bi bi-plus-circle"></i> Adicionar item</div>
+        <div class="card-body">
+            <form method="post" action="{% url 'compras:item_novo' object.pk %}" novalidate>
+                {% csrf_token %}
+                {% with form=form_item %}{% include "includes/campos.html" %}{% endwith %}
+                <button class="btn btn-success mt-3" type="submit"><i class="bi bi-plus-lg"></i> Adicionar</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

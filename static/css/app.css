@@ -29,3 +29,21 @@
     color: #fff;
     font-size: 1.4rem;
 }
+
+/* Área do usuário */
+.ponto-categoria {
+    display: inline-block;
+    width: .7rem;
+    height: .7rem;
+    border-radius: 50%;
+    vertical-align: middle;
+}
+
+a.kpi {
+    color: inherit;
+    transition: border-color .15s;
+}
+
+a.kpi:hover {
+    border-color: var(--kg-verde);
+}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block titulo %}Movimentações · Guardião da Cozinha{% endblock %}
+{% block conteudo %}
+<div class="container py-4">
+    <h1 class="h3">Movimentações</h1>
+    <p class="text-body-secondary">Histórico de tudo que entrou e saiu. Não pode ser editado: cada linha registra quem fez e quando.</p>
+    <form class="row g-2 mb-3" method="get">
+        <div class="col-md-3"><input class="form-control" type="search" name="q" value="{{ request.GET.q }}" placeholder="Produto"></div>
+        <div class="col-6 col-md-2"><select class="form-select" name="tipo" aria-label="Tipo">
+            <option value="">Todos os tipos</option>
+            {% for valor, rotulo in tipos %}<option value="{{ valor }}" {% if request.GET.tipo == valor %}selected{% endif %}>{{ rotulo }}</option>{% endfor %}
+        </select></div>
+        <div class="col-6 col-md-2"><input class="form-control" type="date" name="de" value="{{ request.GET.de }}" aria-label="De"></div>
+        <div class="col-6 col-md-2"><input class="form-control" type="date" name="ate" value="{{ request.GET.ate }}" aria-label="Até"></div>
+        <div class="col-6 col-md-3 d-flex gap-2"><button class="btn btn-outline-success flex-fill" type="submit"><i class="bi bi-funnel"></i> Filtrar</button>
+            <a class="btn btn-outline-secondary" href="{% url 'estoque:movimentacoes' %}" title="Limpar"><i class="bi bi-x-lg"></i></a></div>
+    </form>
+    <div class="card">
+        <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+            <thead><tr><th>Data</th><th>Tipo</th><th>Produto</th><th class="text-end">Quantidade</th><th class="d-none d-md-table-cell">Motivo</th><th class="d-none d-lg-table-cell">Responsável</th></tr></thead>
+            <tbody>
+            {% for m in object_list %}
+            <tr>
+                <td class="text-nowrap">{{ m.data|date:"d/m/Y" }}</td>
+                <td>{% include "estoque/_tipo.html" %}</td>
+                <td><a href="{% url 'estoque:produto' m.lote.produto_id %}">{{ m.lote.produto.nome }}</a></td>
+                <td class="text-end text-nowrap">{{ m.quantidade|floatformat:"-3" }} {{ m.lote.produto.unidade }}</td>
+                <td class="d-none d-md-table-cell small">{{ m.get_motivo_display }}</td>
+                <td class="d-none d-lg-table-cell small">{{ m.usuario }}</td>
+            </tr>
+            {% empty %}<tr><td colspan="6" class="text-center text-body-secondary py-5">Nenhuma movimentação encontrada.</td></tr>{% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+    {% include "includes/paginacao.html" %}
+</div>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block titulo %}Cadastre-se · Guardião da Cozinha{% endblock %}
+{% block conteudo %}
+<div class="container py-4" style="max-width: 860px">
+    <h1 class="h3 mb-1">Cadastre-se</h1>
+    <p class="text-body-secondary">Crie sua conta e a sua cozinha. Você será o(a) <strong>gestor(a)</strong> dela
+        e já começa com despensa, geladeira e freezer cadastrados.</p>
+    <form method="post" novalidate class="card">
+        {% csrf_token %}
+        <div class="card-body">
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">{% for e in form.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>
+            {% endif %}
+            <h2 class="h6 text-uppercase text-body-secondary mb-3">Seus dados</h2>
+            <div class="row g-3">
+                {% for campo in form %}{% if campo.name in "first_name last_name username email" %}
+                {% include "includes/campo.html" %}
+                {% endif %}{% endfor %}
+            </div>
+            <h2 class="h6 text-uppercase text-body-secondary mt-4 mb-3">Senha</h2>
+            <div class="row g-3">
+                {% for campo in form %}{% if campo.name == "password1" or campo.name == "password2" %}
+                {% include "includes/campo.html" %}
+                {% endif %}{% endfor %}
+            </div>
+            <h2 class="h6 text-uppercase text-body-secondary mt-4 mb-3">Sua cozinha</h2>
+            <div class="row g-3">
+                {% for campo in form %}{% if campo.name in "nome_cozinha tipo_cozinha cidade" %}
+                {% include "includes/campo.html" %}
+                {% endif %}{% endfor %}
+            </div>
+        </div>
+        <div class="card-footer d-flex flex-wrap gap-2 align-items-center">
+            <button type="submit" class="btn btn-success"><i class="bi bi-person-plus"></i> Criar conta</button>
+            <span class="small text-body-secondary ms-auto">Já tem conta? <a href="{% url 'contas:login' %}">Entrar</a></span>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -19,9 +19,11 @@
     </script>
 </head>
 <body class="d-flex flex-column min-vh-100">
-<nav class="navbar navbar-expand-md border-bottom bg-body-tertiary">
+{% with url=request.resolver_match.namespace %}
+<nav class="navbar navbar-expand-lg border-bottom bg-body-tertiary">
     <div class="container">
-        <a class="navbar-brand d-flex align-items-center gap-2 fw-semibold" href="{% url 'core:inicio' %}">
+        <a class="navbar-brand d-flex align-items-center gap-2 fw-semibold"
+           href="{% if user.is_authenticated %}{% url 'core:painel' %}{% else %}{% url 'core:inicio' %}{% endif %}">
             <img src="{% static 'img/favicon.svg' %}" alt="" width="30" height="30"> Guardião da Cozinha
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menu"
@@ -29,8 +31,35 @@
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="menu">
-            <ul class="navbar-nav ms-auto align-items-md-center gap-md-2">
-                {% block menu %}{% endblock %}
+            {% if user.is_authenticated %}
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item"><a class="nav-link {% if request.resolver_match.url_name == 'painel' %}active{% endif %}"
+                    href="{% url 'core:painel' %}"><i class="bi bi-house"></i> Painel</a></li>
+                {% if perms.estoque.view_produto %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle {% if url == 'estoque' %}active{% endif %}" href="#"
+                       role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-box-seam"></i> Estoque</a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{% url 'estoque:produtos' %}">Produtos</a></li>
+                        {% if perms.estoque.view_lote %}<li><a class="dropdown-item" href="{% url 'estoque:lotes' %}">Lotes</a></li>{% endif %}
+                        {% if perms.estoque.view_movimentacao %}<li><a class="dropdown-item" href="{% url 'estoque:movimentacoes' %}">Movimentações</a></li>{% endif %}
+                        {% if perms.estoque.add_lote %}<li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{% url 'estoque:entrada' %}"><i class="bi bi-plus-circle"></i> Registrar entrada</a></li>{% endif %}
+                    </ul>
+                </li>
+                {% endif %}
+                {% if perms.compras.view_listacompra %}
+                <li class="nav-item"><a class="nav-link {% if url == 'compras' %}active{% endif %}"
+                    href="{% url 'compras:listas' %}"><i class="bi bi-cart"></i> Compras</a></li>
+                {% endif %}
+                {% if perms.cozinhas.view_localarmazenamento %}
+                <li class="nav-item"><a class="nav-link {% if url == 'cozinhas' %}active{% endif %}"
+                    href="{% url 'cozinhas:locais' %}"><i class="bi bi-snow"></i> Locais</a></li>
+                {% endif %}
+            </ul>
+            {% endif %}
+            <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
                 <li class="nav-item">
                     <button id="alternar-tema" class="btn btn-link nav-link" type="button"
                             aria-label="Alternar tema claro/escuro" title="Alternar tema">
@@ -38,19 +67,45 @@
                         <i class="bi bi-sun-fill tema-claro-icone"></i>
                     </button>
                 </li>
-                {% if user.is_authenticated and user.is_staff %}
-                    <li class="nav-item"><a class="btn btn-success btn-sm" href="{% url 'admin:index' %}">
-                        <i class="bi bi-speedometer2"></i> Administração</a></li>
-                {% elif not user.is_authenticated %}
-                    <li class="nav-item"><a class="btn btn-success btn-sm" href="{% url 'admin:login' %}">
-                        <i class="bi bi-box-arrow-in-right"></i> Entrar</a></li>
+                {% if user.is_authenticated %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"
+                       aria-expanded="false"><i class="bi bi-person-circle"></i> {{ user.first_name|default:user.username }}</a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><span class="dropdown-item-text small text-body-secondary">
+                            {{ user.get_perfil_display }}{% if user.cozinha %} · {{ user.cozinha }}{% endif %}</span></li>
+                        <li><a class="dropdown-item" href="{% url 'contas:perfil' %}"><i class="bi bi-person-gear"></i> Meus dados</a></li>
+                        {% if user.is_staff %}<li><a class="dropdown-item" href="{% url 'admin:index' %}"><i class="bi bi-speedometer2"></i> Administração</a></li>{% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form method="post" action="{% url 'contas:logout' %}">{% csrf_token %}
+                                <button class="dropdown-item text-danger" type="submit"><i class="bi bi-box-arrow-right"></i> Sair</button>
+                            </form>
+                        </li>
+                    </ul>
+                </li>
+                {% else %}
+                <li class="nav-item"><a class="nav-link" href="{% url 'contas:cadastro' %}">Cadastre-se</a></li>
+                <li class="nav-item"><a class="btn btn-success btn-sm" href="{% url 'contas:login' %}">
+                    <i class="bi bi-box-arrow-in-right"></i> Entrar</a></li>
                 {% endif %}
             </ul>
         </div>
     </div>
 </nav>
+{% endwith %}
 
 <main class="flex-grow-1">
+    {% if messages %}
+    <div class="container mt-3">
+        {% for m in messages %}
+        <div class="alert alert-{% if m.tags == 'error' %}danger{% else %}{{ m.tags }}{% endif %} alert-dismissible fade show" role="alert">
+            {{ m }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
     {% block conteudo %}{% endblock %}
 </main>
 
