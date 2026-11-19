@@ -58,7 +58,8 @@ class ListaLista(AreaMixin, ListView):
     paginate_by = 15
 
     def get_queryset(self):
-        qs = super().get_queryset().select_related("cozinha", "criada_por").com_resumo()
+        qs = super().get_queryset().select_related("cozinha", "criada_por").com_resumo() \
+            .order_by("-criada_em", "-pk")
         if self.request.GET.get("status") in ListaCompra.Status.values:
             qs = qs.filter(status=self.request.GET["status"])
         return qs

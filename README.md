@@ -99,10 +99,17 @@ recrie-os para os alertas de validade ficarem atuais:
 python manage.py popular_demo --limpar
 ```
 
-Testes automatizados (45 testes: admin, regras de estoque, área do usuário e regressões):
+Testes automatizados (71 testes: admin, regras de estoque, área do usuário, regressões e os
+critérios de avaliação do enunciado):
 
 ```bash
 python manage.py test
+```
+
+Só os critérios de avaliação, com o nome de cada critério na saída (serve de checklist):
+
+```bash
+python manage.py test apps.core.tests_criterios -v 2
 ```
 
 ## ✨ Principais funcionalidades
