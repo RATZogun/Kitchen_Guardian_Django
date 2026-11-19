@@ -5,19 +5,12 @@ registros da própria cozinha: o filtro vale para as listagens, para as opções
 dos campos de chave estrangeira e para o filtro lateral "cozinha".
 """
 
-# Caminho até a cozinha a partir de cada modelo relacionado usado em formulários
-CAMINHO_COZINHA = {
-    "cozinha": "pk",
-    "localarmazenamento": "cozinha",
-    "produto": "cozinha",
-    "lote": "produto__cozinha",
-    "listacompra": "cozinha",
-    "usuario": "cozinha",
-}
+from apps.core.mixins import CAMINHO_COZINHA
+from apps.core.mixins import eh_admin_geral as ve_todas_as_cozinhas
 
 
 def eh_admin_geral(request):
-    return request.user.is_superuser or getattr(request.user, "eh_administrador", False)
+    return ve_todas_as_cozinhas(request.user)
 
 
 class EscopoCozinhaMixin:

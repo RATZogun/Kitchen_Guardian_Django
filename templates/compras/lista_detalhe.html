@@ -36,7 +36,7 @@
                 <td class="d-none d-md-table-cell small">{{ item.fornecedor|default:"-" }}</td>
                 <td class="text-end text-nowrap">R$ {{ item.subtotal|floatformat:"2g" }}</td>
                 <td class="text-end text-nowrap">
-                    {% if perms.compras.change_itemlistacompra %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'compras:item_editar' item.pk %}" title="Editar item"><i class="bi bi-pencil"></i></a>{% endif %}
+                    {% if perms.compras.change_itemlistacompra and perms.compras.change_listacompra %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'compras:item_editar' item.pk %}" title="Editar item"><i class="bi bi-pencil"></i></a>{% endif %}
                     {% if perms.compras.delete_itemlistacompra %}<a class="btn btn-sm btn-outline-danger" href="{% url 'compras:item_excluir' item.pk %}" title="Remover item"><i class="bi bi-trash"></i></a>{% endif %}
                 </td>
             </tr>

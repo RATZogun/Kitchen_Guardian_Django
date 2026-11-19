@@ -76,6 +76,12 @@ class Fornecedor(models.Model):
 # ---------------------------------------------------------------------------
 # Produto
 # ---------------------------------------------------------------------------
+#: Abaixo do mínimo = saldo <= estoque mínimo, só para produtos com mínimo definido (> 0).
+#: Usada pelo admin, pelo painel, pela lista de produtos e pela geração da lista de compras.
+#: Exige o queryset anotado com "saldo" (ProdutoQuerySet.com_saldo).
+ABAIXO_DO_MINIMO = Q(estoque_minimo__gt=0, saldo__lte=F("estoque_minimo"))
+
+
 class ProdutoQuerySet(models.QuerySet):
     def com_saldo(self):
         """Anota o saldo (soma dos lotes) e o nível de estoque de cada produto."""
@@ -89,7 +95,7 @@ class ProdutoQuerySet(models.QuerySet):
             ))
 
     def abaixo_do_minimo(self):
-        return self.com_saldo().filter(ativo=True, saldo__lte=F("estoque_minimo"))
+        return self.com_saldo().filter(ABAIXO_DO_MINIMO, ativo=True)
 
 
 class Produto(models.Model):

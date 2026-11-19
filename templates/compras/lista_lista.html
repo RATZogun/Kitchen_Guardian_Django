@@ -28,7 +28,7 @@
                         <h2 class="h6 mb-1">{{ lista.titulo }}</h2>
                         <span class="badge {% if lista.status == 'CONCLUIDA' %}text-bg-success{% elif lista.status == 'CANCELADA' %}text-bg-secondary{% elif lista.status == 'ENVIADA' %}text-bg-info{% else %}text-bg-warning{% endif %} align-self-start">{{ lista.get_status_display }}</span>
                     </div>
-                    <div class="small text-body-secondary">{{ lista.itens.all|length }} ite{{ lista.itens.all|length|pluralize:"m,ns" }} · R$ {{ lista.total_estimado|floatformat:"2g" }}{% if not user.cozinha %} · {{ lista.cozinha }}{% endif %}</div>
+                    <div class="small text-body-secondary">{{ lista.total_itens }} ite{{ lista.total_itens|pluralize:"m,ns" }} · R$ {{ lista.total_estimado|floatformat:"2g" }}{% if not user.cozinha %} · {{ lista.cozinha }}{% endif %}</div>
                     <div class="progress mt-3" role="progressbar" style="height: 6px" aria-label="Itens comprados" aria-valuenow="{{ lista.progresso }}" aria-valuemin="0" aria-valuemax="100">
                         <div class="progress-bar bg-success" style="width: {{ lista.progresso }}%"></div></div>
                     <div class="small text-body-secondary mt-1">{{ lista.progresso }}% comprado{% if lista.data_prevista %} · prevista para {{ lista.data_prevista|date:"d/m/Y" }}{% endif %}</div>

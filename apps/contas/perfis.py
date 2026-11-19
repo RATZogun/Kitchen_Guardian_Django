@@ -14,8 +14,9 @@ PERMISSOES = {
     "Gestor": {
         "cozinhas.cozinha": (V,),
         "cozinhas.localarmazenamento": TUDO,
-        "estoque.categoria": (V, A, C),
-        "estoque.fornecedor": (V, A, C),
+        # categorias e fornecedores valem para todas as cozinhas: só o Administrador altera
+        "estoque.categoria": (V,),
+        "estoque.fornecedor": (V,),
         "estoque.produto": TUDO,
         "estoque.lote": (V, A, C),
         "estoque.movimentacao": (V, A),
