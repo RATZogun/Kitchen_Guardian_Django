@@ -1,5 +1,6 @@
 from django.contrib import admin, messages
 from django.db.models import Count, Q
+from django.forms.models import BaseInlineFormSet
 from unfold.admin import ModelAdmin, TabularInline
 from unfold.contrib.filters.admin import (
     ChoicesCheckboxFilter,
@@ -10,6 +11,7 @@ from unfold.contrib.filters.admin import (
 from unfold.decorators import display
 
 from apps.core.admin_mixins import EscopoCozinhaMixin
+from apps.estoque.models import Produto
 
 from .models import ItemListaCompra, ListaCompra
 
@@ -17,12 +19,25 @@ COR_STATUS = {"Rascunho": "info", "Enviada ao fornecedor": "warning", "Concluíd
               "Cancelada": "danger"}
 
 
+class ItensInlineFormSet(BaseInlineFormSet):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        cozinha_id = getattr(self.instance, "cozinha_id", None)
+        produtos = Produto.objects.filter(cozinha_id=cozinha_id, ativo=True).order_by("nome") \
+            if cozinha_id else Produto.objects.none()
+
+        for form in self.forms:
+            if "produto" in form.fields:
+                form.fields["produto"].queryset = produtos
+
+
 class ItemInline(TabularInline):
     model = ItemListaCompra
+    formset = ItensInlineFormSet
     extra = 1
     fields = ["produto", "quantidade", "fornecedor", "preco_estimado", "subtotal_fmt", "comprado"]
     readonly_fields = ["subtotal_fmt"]
-    autocomplete_fields = ["produto", "fornecedor"]
+    autocomplete_fields = ["fornecedor"]
 
     @display(description="subtotal")
     def subtotal_fmt(self, obj):
