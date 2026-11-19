@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block titulo %}Listas de compras · Guardião da Cozinha{% endblock %}
+{% block conteudo %}
+<div class="container py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h1 class="h3 mb-0">Listas de compras</h1>
+        <div class="d-flex flex-wrap gap-2">
+            {% if perms.compras.add_listacompra %}
+            <form method="post" action="{% url 'compras:gerar' %}">{% csrf_token %}
+                <button class="btn btn-outline-success" type="submit" title="Cria uma lista com os produtos abaixo do estoque mínimo">
+                    <i class="bi bi-magic"></i> Gerar pelo estoque baixo</button></form>
+            <a class="btn btn-success" href="{% url 'compras:lista_nova' %}"><i class="bi bi-plus-lg"></i> Nova lista</a>
+            {% endif %}
+        </div>
+    </div>
+    <ul class="nav nav-pills mb-3 flex-wrap">
+        <li class="nav-item"><a class="nav-link {% if not request.GET.status %}active{% endif %}" href="{% url 'compras:listas' %}">Todas</a></li>
+        {% for valor, rotulo in status %}
+        <li class="nav-item"><a class="nav-link {% if request.GET.status == valor %}active{% endif %}" href="?status={{ valor }}">{{ rotulo }}</a></li>
+        {% endfor %}
+    </ul>
+    <div class="row g-3">
+        {% for lista in object_list %}
+        <div class="col-md-6 col-lg-4">
+            <a class="card h-100 text-decoration-none kpi" href="{% url 'compras:lista' lista.pk %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between gap-2">
+                        <h2 class="h6 mb-1">{{ lista.titulo }}</h2>
+                        <span class="badge {% if lista.status == 'CONCLUIDA' %}text-bg-success{% elif lista.status == 'CANCELADA' %}text-bg-secondary{% elif lista.status == 'ENVIADA' %}text-bg-info{% else %}text-bg-warning{% endif %} align-self-start">{{ lista.get_status_display }}</span>
+                    </div>
+                    <div class="small text-body-secondary">{{ lista.itens.all|length }} ite{{ lista.itens.all|length|pluralize:"m,ns" }} · R$ {{ lista.total_estimado|floatformat:"2g" }}{% if not user.cozinha %} · {{ lista.cozinha }}{% endif %}</div>
+                    <div class="progress mt-3" role="progressbar" style="height: 6px" aria-label="Itens comprados" aria-valuenow="{{ lista.progresso }}" aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress-bar bg-success" style="width: {{ lista.progresso }}%"></div></div>
+                    <div class="small text-body-secondary mt-1">{{ lista.progresso }}% comprado{% if lista.data_prevista %} · prevista para {{ lista.data_prevista|date:"d/m/Y" }}{% endif %}</div>
+                </div>
+            </a>
+        </div>
+        {% empty %}<p class="text-body-secondary">Nenhuma lista.</p>{% endfor %}
+    </div>
+    {% include "includes/paginacao.html" %}
+</div>
+{% endblock %}
