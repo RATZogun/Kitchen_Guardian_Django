@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block titulo %}Locais de armazenamento · Guardião da Cozinha{% endblock %}
+{% block conteudo %}
+<div class="container py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h1 class="h3 mb-0">Locais de armazenamento</h1>
+        {% if perms.cozinhas.add_localarmazenamento %}<a class="btn btn-success" href="{% url 'cozinhas:local_novo' %}"><i class="bi bi-plus-lg"></i> Novo local</a>{% endif %}
+    </div>
+    <div class="row g-3">
+        {% for local in object_list %}
+        <div class="col-sm-6 col-lg-4">
+            <div class="card h-100 {% if not local.ativo %}opacity-75{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <h2 class="h5 mb-1">
+                            {% if local.tipo == "FREEZER" or local.tipo == "CAMARA_FRIA" %}<i class="bi bi-snow text-info"></i>{% elif local.tipo == "GELADEIRA" %}<i class="bi bi-thermometer-low text-info"></i>{% else %}<i class="bi bi-archive text-warning"></i>{% endif %}
+                            {{ local.nome }}</h2>
+                        {% if not local.ativo %}<span class="badge text-bg-secondary align-self-start">inativo</span>{% endif %}
+                    </div>
+                    <div class="small text-body-secondary">{{ local.get_tipo_display }}{% if not user.cozinha %} · {{ local.cozinha }}{% endif %}</div>
+                    {% if local.temperatura_min is not None or local.temperatura_max is not None %}
+                    <div class="small mt-2"><i class="bi bi-thermometer-half"></i> {{ local.temperatura_min|default_if_none:"?" }} °C a {{ local.temperatura_max|default_if_none:"?" }} °C</div>
+                    {% endif %}
+                    <div class="mt-2"><a href="{% url 'estoque:lotes' %}?local={{ local.tipo }}" class="small">{{ local.n_lotes }} lote{{ local.n_lotes|pluralize }} com saldo</a></div>
+                </div>
+                {% if perms.cozinhas.change_localarmazenamento or perms.cozinhas.delete_localarmazenamento %}
+                <div class="card-footer d-flex gap-2">
+                    {% if perms.cozinhas.change_localarmazenamento %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'cozinhas:local_editar' local.pk %}"><i class="bi bi-pencil"></i> Editar</a>{% endif %}
+                    {% if perms.cozinhas.delete_localarmazenamento %}<a class="btn btn-sm btn-outline-danger" href="{% url 'cozinhas:local_excluir' local.pk %}"><i class="bi bi-trash"></i></a>{% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <p class="text-body-secondary">Nenhum local cadastrado.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
