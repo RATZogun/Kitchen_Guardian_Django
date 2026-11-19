@@ -6,14 +6,13 @@ from django.conf import settings
 from django.db.models import Sum
 from django.urls import reverse
 
-from apps.core.admin_mixins import eh_admin_geral
+from apps.core.indicadores import indicadores_estoque, lotes_em_risco
+from apps.core.mixins import escopo
 from apps.estoque.models import Lote, Movimentacao, Produto, hoje
 
 
 def _escopo(request, qs, caminho):
-    if eh_admin_geral(request):
-        return qs
-    return qs.filter(**{caminho: request.user.cozinha_id})
+    return escopo(request.user, qs, caminho)
 
 
 def ambiente(request):
@@ -35,13 +34,9 @@ def _br(valor):
 
 
 def dashboard_callback(request, context):
-    produtos = _escopo(request, Produto.objects.filter(ativo=True), "cozinha")
-    lotes = _escopo(request, Lote.objects.select_related("produto", "local"), "produto__cozinha")
-    movs = _escopo(request, Movimentacao.objects.all(), "lote__produto__cozinha")
-
-    abaixo = produtos.abaixo_do_minimo().select_related("categoria").order_by("saldo")
-    vencidos = lotes.vencidos()
-    vencendo = lotes.vencendo()
+    ind = indicadores_estoque(request.user)
+    produtos, lotes, movs = ind["produtos"], ind["lotes"], ind["movimentacoes"]
+    abaixo, vencidos, vencendo = ind["abaixo"], ind["vencidos"], ind["vencendo"]
     valor_total = sum((l.valor_em_estoque for l in lotes.com_saldo()), start=0)
     url_lotes = reverse("admin:estoque_lote_changelist")
     url_produtos = reverse("admin:estoque_produto_changelist")
@@ -59,9 +54,7 @@ def dashboard_callback(request, context):
             .replace(".", ",").replace("X", "."), "icone": "payments", "link": url_lotes},
     ]
 
-    # primeiro o que ainda dá para aproveitar (vence logo), depois os vencidos mais recentes
-    em_risco = list(vencendo.order_by("data_validade")[:8])
-    em_risco += list(vencidos.order_by("-data_validade")[:8 - len(em_risco)])
+    em_risco = lotes_em_risco(ind)
     tabela_risco = {
         "headers": ["Produto", "Lote", "Local", "Restante", "Validade", "Situação"],
         "rows": [[l.produto.nome, l.codigo or f"#{l.pk}", l.local.nome,
@@ -104,7 +97,6 @@ def dashboard_callback(request, context):
         "n_movs_14d": movs.filter(data__gte=dias[0]).count(),
         "descartes_14d": movs.filter(tipo=Movimentacao.Tipo.DESCARTE, data__gte=dias[0]).count(),
         "tem_descarte": bool(descartado),
-        "escopo": "todas as cozinhas" if eh_admin_geral(request)
-                  else str(request.user.cozinha or "sem cozinha"),
+        "escopo": ind["escopo"],
     })
     return context

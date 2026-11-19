@@ -4,13 +4,15 @@ from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
+from django.utils.functional import cached_property
 from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView, UpdateView
 
 from apps.core.mixins import AreaMixin, ExclusaoProtegidaMixin, FormCozinhaMixin, escopo
 
 from . import services
 from .forms import BaixaForm, LoteEdicaoForm, LoteEntradaForm, ProdutoForm
-from .models import Categoria, Lote, Movimentacao, Produto, hoje, limite_alerta
+from .models import (ABAIXO_DO_MINIMO, Categoria, Lote, Movimentacao, Produto, hoje,
+                     limite_alerta)
 
 
 # ---------------------------------------------------------------------------
@@ -29,8 +31,12 @@ class ProdutoLista(AreaMixin, ListView):
             qs = qs.filter(Q(nome__icontains=g["q"]) | Q(codigo_barras=g["q"]))
         if g.get("categoria"):
             qs = qs.filter(categoria_id=g["categoria"])
-        if g.get("nivel") in ("OK", "BAIXO", "ZERADO"):
-            qs = qs.filter(nivel=g["nivel"])
+        if g.get("nivel") == "BAIXO":
+            qs = qs.filter(ABAIXO_DO_MINIMO)
+        elif g.get("nivel") == "ZERADO":
+            qs = qs.filter(saldo=0)
+        elif g.get("nivel") == "OK":
+            qs = qs.exclude(ABAIXO_DO_MINIMO).filter(saldo__gt=0)
         if g.get("inativos") != "1":
             qs = qs.filter(ativo=True)
         return qs
@@ -178,12 +184,12 @@ class LoteBaixa(AreaMixin, FormView):
     form_class = BaixaForm
     template_name = "estoque/lote_baixa.html"
 
-    def dispatch(self, request, *args, **kwargs):
-        if request.user.is_authenticated:
-            self.lote = get_object_or_404(
-                escopo(request.user, Lote.objects.select_related("produto", "local"),
-                       "produto__cozinha"), pk=kwargs["pk"])
-        return super().dispatch(request, *args, **kwargs)
+    @cached_property
+    def lote(self):
+        # só é acessado depois que AreaMixin conferiu login e permissão
+        return get_object_or_404(
+            escopo(self.request.user, Lote.objects.select_related("produto", "local"),
+                   "produto__cozinha"), pk=self.kwargs["pk"])
 
     def get_initial(self):
         return {"data": hoje(), "quantidade": None}

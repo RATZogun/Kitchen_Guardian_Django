@@ -3,10 +3,20 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
-from django.db.models import DecimalField, ExpressionWrapper, F, Sum
+from django.db.models import Count, DecimalField, ExpressionWrapper, F, Q, Sum
 from django.utils import timezone
 
 QTD = {"max_digits": 10, "decimal_places": 3}
+
+
+class ListaCompraQuerySet(models.QuerySet):
+    def com_resumo(self):
+        """Anota total estimado, quantidade de itens e de itens comprados (evita N+1)."""
+        return self.annotate(
+            n_itens=Count("itens"),
+            n_comprados=Count("itens", filter=Q(itens__comprado=True)),
+            total=Sum(ExpressionWrapper(F("itens__quantidade") * F("itens__preco_estimado"),
+                                        output_field=DecimalField(max_digits=14, decimal_places=2))))
 
 
 class ListaCompra(models.Model):
@@ -36,11 +46,15 @@ class ListaCompra(models.Model):
         verbose_name_plural = "listas de compras"
         ordering = ["-criada_em"]
 
+    objects = ListaCompraQuerySet.as_manager()
+
     def __str__(self):
         return f"{self.titulo} ({self.cozinha})"
 
     @property
     def total_estimado(self):
+        if hasattr(self, "total"):
+            return self.total or Decimal("0")
         total = self.itens.aggregate(t=Sum(ExpressionWrapper(
             F("quantidade") * F("preco_estimado"),
             output_field=DecimalField(max_digits=14, decimal_places=2))))["t"]
@@ -49,8 +63,15 @@ class ListaCompra(models.Model):
     @property
     def progresso(self):
         """Percentual de itens já comprados."""
-        total = self.itens.count()
-        return round(100 * self.itens.filter(comprado=True).count() / total) if total else 0
+        if hasattr(self, "n_itens"):
+            total, comprados = self.n_itens, self.n_comprados
+        else:
+            total, comprados = self.itens.count(), self.itens.filter(comprado=True).count()
+        return round(100 * comprados / total) if total else 0
+
+    @property
+    def total_itens(self):
+        return self.n_itens if hasattr(self, "n_itens") else self.itens.count()
 
     def save(self, *args, **kwargs):
         if self.status == self.Status.CONCLUIDA and not self.concluida_em:

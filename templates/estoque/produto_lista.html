@@ -15,7 +15,7 @@
         <div class="col-6 col-md-2"><select class="form-select" name="nivel" aria-label="Nível do estoque">
             <option value="">Qualquer nível</option>
             <option value="OK" {% if request.GET.nivel == "OK" %}selected{% endif %}>Em dia</option>
-            <option value="BAIXO" {% if request.GET.nivel == "BAIXO" %}selected{% endif %}>Abaixo do mínimo</option>
+            <option value="BAIXO" {% if request.GET.nivel == "BAIXO" %}selected{% endif %}>Abaixo do mínimo (inclui zerados)</option>
             <option value="ZERADO" {% if request.GET.nivel == "ZERADO" %}selected{% endif %}>Zerado</option>
         </select></div>
         <div class="col-md-3 d-flex gap-2">

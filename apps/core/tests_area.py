@@ -183,3 +183,90 @@ class AreaUsuarioTest(TestCase):
         self.client.force_login(self.admin)
         r = self.client.get(reverse("estoque:produtos") + "?inativos=1")
         self.assertEqual(r.context["paginator"].count, Produto.objects.count())
+
+
+class HotfixRevisaoTest(TestCase):
+    """Regressões encontradas na revisão do Checkpoint 2."""
+
+    @classmethod
+    def setUpTestData(cls):
+        call_command("popular_demo", stdout=open("/dev/null", "w"))
+        cls.admin = Usuario.objects.get(username="admin")
+        cls.gestor = Usuario.objects.get(username="gestor1")
+        cls.operador = Usuario.objects.get(username="operador1")
+
+    def test_gestor_nao_altera_categorias_nem_fornecedores_globais(self):
+        for perm in ("estoque.add_categoria", "estoque.change_categoria",
+                     "estoque.add_fornecedor", "estoque.change_fornecedor"):
+            with self.subTest(perm=perm):
+                self.assertFalse(Usuario.objects.get(pk=self.gestor.pk).has_perm(perm))
+        self.client.force_login(self.gestor)
+        categoria = Categoria.objects.first()
+        r = self.client.get(reverse("admin:estoque_categoria_change", args=[categoria.pk]))
+        self.assertNotContains(r, 'name="_save"')
+
+    def test_cartao_do_painel_bate_com_a_lista_filtrada(self):
+        self.client.force_login(self.gestor)
+        n_painel = self.client.get(reverse("core:painel")).context["n_abaixo"]
+        lista = self.client.get(reverse("estoque:produtos") + "?nivel=BAIXO")
+        self.assertEqual(lista.context["paginator"].count, n_painel)
+
+    def test_produto_sem_minimo_nao_entra_na_reposicao(self):
+        cozinha = self.gestor.cozinha
+        sem_minimo = Produto.objects.create(cozinha=cozinha, nome="Produto sem mínimo",
+                                            categoria=Categoria.objects.first(),
+                                            estoque_minimo=0)
+        self.assertNotIn(sem_minimo, Produto.objects.abaixo_do_minimo())
+        self.client.force_login(self.gestor)
+        self.client.post(reverse("compras:gerar"))
+        lista = ListaCompra.objects.filter(cozinha=cozinha).order_by("-pk").first()
+        self.assertFalse(lista.itens.filter(produto=sem_minimo).exists())
+
+    def test_item_com_produto_desativado_continua_editavel(self):
+        self.client.force_login(self.gestor)
+        self.client.post(reverse("compras:gerar"))
+        item = ListaCompra.objects.filter(cozinha=self.gestor.cozinha).order_by("-pk") \
+            .first().itens.first()
+        Produto.objects.filter(pk=item.produto_id).update(ativo=False)
+        r = self.client.post(reverse("compras:item_editar", args=[item.pk]), {
+            "produto": item.produto_id, "quantidade": "3", "preco_estimado": "1"})
+        self.assertEqual(r.status_code, 302)
+        item.refresh_from_db()
+        self.assertEqual(item.quantidade, Decimal("3"))
+
+    def test_operador_so_marca_item_comprado(self):
+        lista = ListaCompra.objects.create(cozinha=self.operador.cozinha, titulo="Teste")
+        item = lista.itens.create(produto=Produto.objects.filter(cozinha=lista.cozinha).first(),
+                                  quantidade=1)
+        self.client.force_login(self.operador)
+        r = self.client.get(reverse("compras:item_editar", args=[item.pk]))
+        self.assertRedirects(r, reverse("core:painel"))
+        self.client.post(reverse("compras:item_comprado", args=[item.pk]))
+        item.refresh_from_db()
+        self.assertTrue(item.comprado)
+
+    def test_admin_nao_troca_a_cozinha_de_um_produto(self):
+        produto = Produto.objects.filter(cozinha=self.gestor.cozinha).first()
+        outra = Cozinha.objects.exclude(pk=produto.cozinha_id).first()
+        self.client.force_login(self.admin)
+        self.client.post(reverse("estoque:produto_editar", args=[produto.pk]), {
+            "cozinha": outra.pk, "nome": produto.nome, "categoria": produto.categoria_id,
+            "unidade": produto.unidade, "estoque_minimo": "1", "ativo": "on"})
+        produto.refresh_from_db()
+        self.assertNotEqual(produto.cozinha, outra)
+
+    def test_baixa_sem_permissao_redireciona_mesmo_com_lote_inexistente(self):
+        from django.contrib.auth.models import Group, Permission
+        Group.objects.get(name="Operador").permissions.remove(
+            Permission.objects.get(codename="add_movimentacao"))
+        self.client.force_login(self.operador)
+        r = self.client.get(reverse("estoque:baixa", args=[999999]))
+        self.assertRedirects(r, reverse("core:painel"))
+
+    def test_lista_de_compras_sem_consultas_por_lista(self):
+        for i in range(5):
+            ListaCompra.objects.create(cozinha=self.gestor.cozinha, titulo=f"Extra {i}")
+        self.client.force_login(self.gestor)
+        self.client.get(reverse("compras:listas"))   # aquece sessão e cache de permissões
+        with self.assertNumQueries(7):
+            self.client.get(reverse("compras:listas"))
