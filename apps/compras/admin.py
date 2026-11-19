@@ -10,7 +10,7 @@ from unfold.contrib.filters.admin import (
 )
 from unfold.decorators import display
 
-from apps.core.admin_mixins import EscopoCozinhaMixin
+from apps.core.admin_mixins import EscopoCozinhaMixin, ve_todas_as_cozinhas
 from apps.estoque.models import Produto
 
 from .models import ItemListaCompra, ListaCompra
@@ -20,15 +20,34 @@ COR_STATUS = {"Rascunho": "info", "Enviada ao fornecedor": "warning", "Concluíd
 
 
 class ItensInlineFormSet(BaseInlineFormSet):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        cozinha_id = getattr(self.instance, "cozinha_id", None)
-        produtos = Produto.objects.filter(cozinha_id=cozinha_id, ativo=True).order_by("nome") \
-            if cozinha_id else Produto.objects.none()
+    """Produtos dos itens limitados à cozinha da lista.
 
-        for form in self.forms:
-            if "produto" in form.fields:
-                form.fields["produto"].queryset = produtos
+    - Lista nova (sem cozinha ainda): usa a cozinha do usuário; o Administrador vê todos e a
+      cozinha é conferida no POST, quando a lista já recebeu a cozinha escolhida.
+    - O produto atual do item continua disponível mesmo se tiver sido desativado depois.
+    """
+
+    #: preenchido por ItemInline.get_formset com o usuário da requisição
+    usuario = None
+
+    def _cozinha_id(self):
+        if self.instance.cozinha_id:
+            return self.instance.cozinha_id
+        if self.usuario is not None and not ve_todas_as_cozinhas(self.usuario):
+            return self.usuario.cozinha_id
+        return None
+
+    def add_fields(self, form, index):
+        # chamado para cada formulário, inclusive o modelo vazio do "adicionar outro item"
+        super().add_fields(form, index)
+        if "produto" not in form.fields:
+            return
+        produtos = Produto.objects.select_related("cozinha").order_by("nome")
+        cozinha_id = self._cozinha_id()
+        if cozinha_id:
+            produtos = produtos.filter(cozinha_id=cozinha_id)
+        form.fields["produto"].queryset = produtos.filter(
+            Q(ativo=True) | Q(pk=form.instance.produto_id))
 
 
 class ItemInline(TabularInline):
@@ -38,6 +57,11 @@ class ItemInline(TabularInline):
     fields = ["produto", "quantidade", "fornecedor", "preco_estimado", "subtotal_fmt", "comprado"]
     readonly_fields = ["subtotal_fmt"]
     autocomplete_fields = ["fornecedor"]
+
+    def get_formset(self, request, obj=None, **kwargs):
+        formset = super().get_formset(request, obj, **kwargs)
+        formset.usuario = request.user
+        return formset
 
     @display(description="subtotal")
     def subtotal_fmt(self, obj):
