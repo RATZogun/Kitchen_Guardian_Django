@@ -27,9 +27,13 @@ casa). Cada usuário pertence a uma cozinha e enxerga apenas os dados dela.
 
 | Perfil | Acesso | O que pode fazer |
 |---|---|---|
-| **Administrador** | Admin, todas as cozinhas | Tudo: cozinhas, usuários, perfis, cadastros e estoque |
-| **Gestor** | Admin, só a própria cozinha | Produtos, lotes, locais, listas de compras; registra saídas e descartes; consulta usuários |
-| **Operador** | Área do usuário (Checkpoint 2) | Consulta o estoque e registra entradas e saídas |
+| **Administrador** | Admin e área do usuário, todas as cozinhas | Tudo: cozinhas, usuários, perfis, cadastros e estoque |
+| **Gestor** | Admin e área do usuário, só a própria cozinha | Produtos, lotes, locais, listas de compras; registra entradas, saídas e descartes; consulta usuários |
+| **Operador** | Só a área do usuário, só a própria cozinha | Consulta o estoque, registra entradas, saídas e descartes e marca itens comprados |
+
+Quem se cadastra pela tela **Cadastre-se** cria a própria cozinha (já com despensa, geladeira e
+freezer) e vira o **Gestor** dela. Operadores são cadastrados pelo administrador ou pelo gestor
+no ambiente administrativo.
 
 As permissões de cada perfil ficam em [`apps/contas/perfis.py`](apps/contas/perfis.py) e são
 aplicadas como grupos do Django automaticamente a cada `migrate`.
@@ -72,6 +76,8 @@ python manage.py runserver
 ```
 
 - Página inicial: <http://127.0.0.1:8000/>
+- Entrar: <http://127.0.0.1:8000/conta/entrar/> · Cadastre-se: <http://127.0.0.1:8000/conta/cadastre-se/>
+- Área do usuário (painel): <http://127.0.0.1:8000/painel/>
 - Administração: <http://127.0.0.1:8000/admin/>
 
 Com os dados de demonstração, todos os usuários usam a senha `guardiao123`:
@@ -85,7 +91,14 @@ Com os dados de demonstração, todos os usuários usam a senha `guardiao123`:
 
 Sem os dados de demonstração, crie um administrador com `python manage.py createsuperuser`.
 
-Testes automatizados:
+Os dados de demonstração usam datas relativas ao dia em que o comando roda. Antes de apresentar,
+recrie-os para os alertas de validade ficarem atuais:
+
+```bash
+python manage.py popular_demo --limpar
+```
+
+Testes automatizados (35 testes: admin, regras de estoque e área do usuário):
 
 ```bash
 python manage.py test
@@ -110,8 +123,26 @@ python manage.py test
 - Badges na barra lateral com a quantidade de produtos abaixo do mínimo e de lotes em risco.
 - Gestor restrito à própria cozinha em listagens, formulários e filtros.
 
-**Checkpoint 2 (previsto)**: login, logout e cadastro na área do usuário; telas Bootstrap para
-o operador consultar o estoque e registrar entradas e saídas; relatórios.
+**Checkpoint 2 (área do usuário, Bootstrap 5, tema claro e escuro, responsiva)**
+
+- **Login, logout e Cadastre-se** com telas próprias. O cadastro cria a conta e a cozinha do
+  usuário; o logout é feito por POST, como recomenda o Django.
+- **Painel** com produtos ativos, abaixo do mínimo, lotes vencendo e vencidos, validade em risco,
+  últimas movimentações e listas de compras abertas, com atalhos para as ações do dia.
+- **Produtos**: CRUD completo, busca por nome ou código de barras, filtros por categoria e nível
+  de estoque, página do produto com lotes (primeiro o que vence antes) e histórico.
+- **Entrada de mercadoria** (cria o lote e a movimentação) e **baixa de lote** por consumo ou
+  descarte, com botão "usar todo o saldo". As regras são as mesmas do admin (`services.py`).
+- **Lotes** com abas por situação (com saldo, vencendo, vencidos, esgotados) e filtro por local.
+- **Movimentações**: histórico somente leitura, com filtros por tipo, período e produto.
+- **Listas de compras**: CRUD de listas e itens, marcar item como comprado, progresso e total
+  estimado, e **geração automática** com os produtos abaixo do mínimo (repõe até 2x o mínimo,
+  com o último custo pago).
+- **Locais de armazenamento**: CRUD com faixa de temperatura e quantidade de lotes guardados.
+- **Meus dados** e **alterar senha**.
+- **Permissões por perfil** em todas as telas: o menu e os botões só aparecem para quem pode
+  usá-los, e acessar a URL diretamente sem permissão volta ao painel com um aviso. Cada usuário
+  só enxerga a própria cozinha (o administrador vê todas).
 
 ## 🗃️ Modelagem do banco de dados
 
@@ -215,8 +246,8 @@ Principais regras de integridade:
 - Restrições no banco: lote nunca negativo nem acima do recebido, quantidade de movimentação
   positiva, estoque mínimo não negativo e nomes únicos por cozinha.
 - O lote só pode ficar num local da mesma cozinha do produto. Produto perecível exige validade.
-- Categorias com produtos ativos não podem ser desativadas. Exclusões de produtos são lógicas
-  (campo `ativo`), para preservar o histórico.
+- Categorias com produtos ativos não podem ser desativadas. Produtos com lotes não podem ser
+  excluídos (o histórico é preservado); nesse caso, desative-os pelo campo `ativo`.
 
 ## 📁 Estrutura do projeto
 
@@ -225,16 +256,24 @@ Kitchen_Guardian_Django/
 ├── config/                 # settings (Unfold, banco, idioma), urls, wsgi/asgi
 ├── apps/
 │   ├── contas/             # Usuario (AbstractUser + perfil + cozinha), perfis/grupos
-│   ├── cozinhas/           # Cozinha, LocalArmazenamento
+│   │   └── views.py        #   login, logout, cadastre-se, meus dados, senha
+│   ├── cozinhas/           # Cozinha, LocalArmazenamento + telas dos locais
 │   ├── estoque/            # Categoria, Fornecedor, Produto, Lote, Movimentacao
 │   │   ├── services.py     #   regras de entrada, saída e descarte
-│   │   └── filters.py      #   filtros personalizados do admin
+│   │   ├── filters.py      #   filtros personalizados do admin
+│   │   └── views.py        #   produtos, lotes, entrada, baixa, movimentações
 │   ├── compras/            # ListaCompra, ItemListaCompra
-│   └── core/               # página inicial, painel do admin, escopo por cozinha,
+│   │   └── services.py     #   geração da lista de reposição
+│   └── core/               # página inicial, painel do usuário e do admin
+│       ├── mixins.py       #   login, permissão e escopo por cozinha nas views
+│       ├── forms.py        #   classes do Bootstrap nos formulários
 │       └── management/     #   comando popular_demo
 ├── templates/
-│   ├── base.html           # layout Bootstrap com alternância de tema
-│   ├── core/inicio.html
+│   ├── base.html           # layout Bootstrap: menu por perfil, tema claro/escuro
+│   ├── core/               # inicio.html, painel.html
+│   ├── contas/ estoque/ compras/ cozinhas/
+│   ├── generico/           # formulário e confirmação de exclusão reutilizáveis
+│   ├── includes/           # campos de formulário e paginação
 │   └── admin/index.html    # painel do admin (componentes do Unfold)
 ├── static/                 # CSS e imagens
 ├── requirements.txt
