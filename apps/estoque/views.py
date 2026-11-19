@@ -24,8 +24,9 @@ class ProdutoLista(AreaMixin, ListView):
     paginate_by = 15
 
     def get_queryset(self):
+        # com_saldo agrupa (Sum) e o Django ignora o Meta.ordering: ordem explícita para paginar
         qs = escopo(self.request.user, Produto.objects.com_saldo(), "cozinha") \
-            .select_related("categoria", "cozinha")
+            .select_related("categoria", "cozinha").order_by("nome", "pk")
         g = self.request.GET
         if g.get("q"):
             qs = qs.filter(Q(nome__icontains=g["q"]) | Q(codigo_barras=g["q"]))

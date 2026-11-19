@@ -32,6 +32,7 @@ def painel(request):
         "em_risco": lotes_em_risco(ind, limite=8),
         "movimentacoes": ind["movimentacoes"].select_related("lote__produto", "usuario")[:8],
         "listas_abertas": escopo(request.user, ListaCompra.objects.com_resumo().exclude(
-            status__in=[ListaCompra.Status.CONCLUIDA, ListaCompra.Status.CANCELADA]))[:5],
+            status__in=[ListaCompra.Status.CONCLUIDA, ListaCompra.Status.CANCELADA]))
+            .order_by("-criada_em")[:5],
     }
     return render(request, "core/painel.html", contexto)
