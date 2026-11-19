@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }} · Guardião da Cozinha{% endblock %}
+{% block conteudo %}
+<div class="container py-4" style="max-width: 860px">
+    <h1 class="h3 mb-1">{{ titulo }}</h1>
+    {% if ajuda %}<p class="text-body-secondary">{{ ajuda }}</p>{% endif %}
+    <div class="card mt-3">
+        <div class="card-body">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {% include "includes/campos.html" %}
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-success"><i class="bi bi-check-lg"></i> {{ botao|default:"Salvar" }}</button>
+                    <a class="btn btn-outline-secondary" href="{% if voltar_url %}{{ voltar_url }}{% elif voltar %}{% url voltar %}{% else %}{% url 'core:painel' %}{% endif %}">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

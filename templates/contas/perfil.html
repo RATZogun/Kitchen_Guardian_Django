@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block titulo %}Meus dados · Guardião da Cozinha{% endblock %}
+{% block conteudo %}
+<div class="container py-4" style="max-width: 860px">
+    <h1 class="h3 mb-3">Meus dados</h1>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card h-100"><div class="card-body">
+                <div class="display-6 text-success"><i class="bi bi-person-circle"></i></div>
+                <div class="fw-semibold">{{ user.get_full_name|default:user.username }}</div>
+                <div class="small text-body-secondary">@{{ user.username }}</div>
+                <hr>
+                <div class="small"><strong>Perfil:</strong> {{ user.get_perfil_display }}</div>
+                <div class="small"><strong>Cozinha:</strong> {{ user.cozinha|default:"todas" }}</div>
+                <a class="btn btn-outline-secondary btn-sm mt-3" href="{% url 'contas:senha' %}"><i class="bi bi-key"></i> Alterar senha</a>
+            </div></div>
+        </div>
+        <div class="col-md-8">
+            <form method="post" novalidate class="card h-100">
+                {% csrf_token %}
+                <div class="card-body">{% include "includes/campos.html" %}</div>
+                <div class="card-footer"><button class="btn btn-success" type="submit"><i class="bi bi-check-lg"></i> Salvar</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
