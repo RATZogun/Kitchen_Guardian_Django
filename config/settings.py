@@ -124,8 +124,8 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-LOGIN_URL = "admin:login"
-LOGIN_REDIRECT_URL = "admin:index"   # área do usuário entra no Checkpoint 2
+LOGIN_URL = "contas:login"
+LOGIN_REDIRECT_URL = "core:painel"
 LOGOUT_REDIRECT_URL = "core:inicio"
 
 
