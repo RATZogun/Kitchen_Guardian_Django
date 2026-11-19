@@ -270,3 +270,22 @@ class HotfixRevisaoTest(TestCase):
         self.client.get(reverse("compras:listas"))   # aquece sessão e cache de permissões
         with self.assertNumQueries(7):
             self.client.get(reverse("compras:listas"))
+
+    def test_admin_lista_nova_ja_oferece_produtos_da_cozinha(self):
+        self.client.force_login(self.gestor)
+        r = self.client.get(reverse("admin:compras_listacompra_add"))
+        opcoes = r.context["inline_admin_formsets"][0].formset.empty_form.fields["produto"].queryset
+        self.assertTrue(opcoes.exists())
+        self.assertFalse(opcoes.exclude(cozinha=self.gestor.cozinha).exists())
+
+    def test_admin_item_com_produto_desativado_continua_na_lista(self):
+        lista = ListaCompra.objects.create(cozinha=self.gestor.cozinha, titulo="Inativo")
+        produto = Produto.objects.filter(cozinha=lista.cozinha).first()
+        lista.itens.create(produto=produto, quantidade=1)
+        Produto.objects.filter(pk=produto.pk).update(ativo=False)
+        self.client.force_login(self.gestor)
+        r = self.client.get(reverse("admin:compras_listacompra_change", args=[lista.pk]))
+        form = r.context["inline_admin_formsets"][0].formset.forms[0]
+        self.assertIn(produto, form.fields["produto"].queryset)
+        self.assertNotIn(produto, r.context["inline_admin_formsets"][0].formset.empty_form
+                         .fields["produto"].queryset)
