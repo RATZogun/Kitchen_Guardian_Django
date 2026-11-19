@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block titulo %}{{ object.nome }} · Guardião da Cozinha{% endblock %}
+{% block conteudo %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb"><ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'estoque:produtos' %}">Produtos</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ object.nome }}</li></ol></nav>
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+        <div>
+            <h1 class="h3 mb-1">{{ object.nome }} {% if not object.ativo %}<span class="badge text-bg-secondary">inativo</span>{% endif %}</h1>
+            <div class="text-body-secondary"><span class="ponto-categoria" style="background: {{ object.categoria.cor }}"></span>
+                {{ object.categoria }} · {{ object.get_unidade_display }}{% if object.perecivel %} · perecível{% endif %} · {{ object.cozinha }}</div>
+        </div>
+        <div class="d-flex gap-2">
+            {% if perms.estoque.add_lote and object.ativo %}<a class="btn btn-success" href="{% url 'estoque:entrada' %}?produto={{ object.pk }}"><i class="bi bi-box-arrow-in-down"></i> Entrada</a>{% endif %}
+            {% if perms.estoque.change_produto %}<a class="btn btn-outline-secondary" href="{% url 'estoque:produto_editar' object.pk %}"><i class="bi bi-pencil"></i> Editar</a>{% endif %}
+        </div>
+    </div>
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body"><div class="small text-body-secondary">Saldo atual</div>
+            <div class="fs-3 fw-bold {% if object.nivel != 'OK' %}text-danger{% endif %}">{{ object.saldo|floatformat:"-3" }} {{ object.unidade }}</div></div></div></div>
+        <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body"><div class="small text-body-secondary">Estoque mínimo</div>
+            <div class="fs-3 fw-bold">{{ object.estoque_minimo|floatformat:"-3" }} {{ object.unidade }}</div></div></div></div>
+        <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body"><div class="small text-body-secondary">Lotes em estoque</div>
+            <div class="fs-3 fw-bold">{{ lotes|length }}</div></div></div></div>
+        <div class="col-6 col-md-3"><div class="card h-100"><div class="card-body"><div class="small text-body-secondary">Fornecedor padrão</div>
+            <div class="fw-semibold">{{ object.fornecedor_padrao|default:"-" }}</div></div></div></div>
+    </div>
+    <div class="card mb-4">
+        <div class="card-header fw-semibold">Lotes com saldo <span class="small text-body-secondary fw-normal">(use primeiro o que vence antes)</span></div>
+        <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+            <thead><tr><th>Lote</th><th>Local</th><th class="text-end">Restante</th><th>Validade</th><th class="d-none d-md-table-cell">Entrada</th><th></th></tr></thead>
+            <tbody>
+            {% for l in lotes %}
+            <tr>
+                <td>{{ l.codigo|default:l.pk }}</td><td>{{ l.local.nome }}</td>
+                <td class="text-end">{{ l.quantidade_atual|floatformat:"-3" }} / {{ l.quantidade_inicial|floatformat:"-3" }}</td>
+                <td>{% include "estoque/_situacao.html" %}</td>
+                <td class="d-none d-md-table-cell small">{{ l.data_entrada|date:"d/m/Y" }}</td>
+                <td class="text-end text-nowrap">
+                    {% if perms.estoque.add_movimentacao %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'estoque:baixa' l.pk %}">Baixa</a>{% endif %}
+                    {% if perms.estoque.change_lote %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'estoque:lote_editar' l.pk %}" title="Editar lote"><i class="bi bi-pencil"></i></a>{% endif %}
+                </td>
+            </tr>
+            {% empty %}<tr><td colspan="6" class="text-center text-body-secondary py-4">Sem estoque deste produto.</td></tr>{% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-header fw-semibold">Últimas movimentações</div>
+        <ul class="list-group list-group-flush">
+            {% for m in movimentacoes %}
+            <li class="list-group-item d-flex flex-wrap justify-content-between gap-2">
+                <span>{% include "estoque/_tipo.html" %} {{ m.get_motivo_display }}{% if m.observacao %} <span class="small text-body-secondary">· {{ m.observacao }}</span>{% endif %}</span>
+                <span class="small">{{ m.quantidade|floatformat:"-3" }} {{ object.unidade }} · {{ m.data|date:"d/m/Y" }} · {{ m.usuario }}</span>
+            </li>
+            {% empty %}<li class="list-group-item text-body-secondary">Nenhuma movimentação.</li>{% endfor %}
+        </ul>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block titulo %}Produtos · Guardião da Cozinha{% endblock %}
+{% block conteudo %}
+<div class="container py-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h1 class="h3 mb-0">Produtos</h1>
+        {% if perms.estoque.add_produto %}<a class="btn btn-success" href="{% url 'estoque:produto_novo' %}"><i class="bi bi-plus-lg"></i> Novo produto</a>{% endif %}
+    </div>
+    <form class="row g-2 mb-3" method="get">
+        <div class="col-md-4"><input class="form-control" type="search" name="q" value="{{ request.GET.q }}" placeholder="Buscar por nome ou código de barras"></div>
+        <div class="col-6 col-md-3"><select class="form-select" name="categoria" aria-label="Categoria">
+            <option value="">Todas as categorias</option>
+            {% for c in categorias %}<option value="{{ c.pk }}" {% if request.GET.categoria == c.pk|stringformat:"s" %}selected{% endif %}>{{ c }}</option>{% endfor %}
+        </select></div>
+        <div class="col-6 col-md-2"><select class="form-select" name="nivel" aria-label="Nível do estoque">
+            <option value="">Qualquer nível</option>
+            <option value="OK" {% if request.GET.nivel == "OK" %}selected{% endif %}>Em dia</option>
+            <option value="BAIXO" {% if request.GET.nivel == "BAIXO" %}selected{% endif %}>Abaixo do mínimo</option>
+            <option value="ZERADO" {% if request.GET.nivel == "ZERADO" %}selected{% endif %}>Zerado</option>
+        </select></div>
+        <div class="col-md-3 d-flex gap-2">
+            <button class="btn btn-outline-success flex-fill" type="submit"><i class="bi bi-funnel"></i> Filtrar</button>
+            <a class="btn btn-outline-secondary" href="{% url 'estoque:produtos' %}" title="Limpar filtros"><i class="bi bi-x-lg"></i></a>
+        </div>
+    </form>
+    <div class="card">
+        <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead><tr><th>Produto</th><th class="d-none d-md-table-cell">Categoria</th>{% if not user.cozinha %}<th class="d-none d-lg-table-cell">Cozinha</th>{% endif %}<th class="text-end">Saldo</th><th class="text-end d-none d-sm-table-cell">Mínimo</th><th>Nível</th><th></th></tr></thead>
+            <tbody>
+            {% for p in object_list %}
+            <tr class="{% if not p.ativo %}text-body-secondary{% endif %}">
+                <td><a href="{% url 'estoque:produto' p.pk %}" class="fw-semibold">{{ p.nome }}</a>
+                    {% if p.perecivel %}<i class="bi bi-thermometer-snow text-info" title="Perecível"></i>{% endif %}
+                    {% if not p.ativo %}<span class="badge text-bg-light">inativo</span>{% endif %}</td>
+                <td class="d-none d-md-table-cell"><span class="ponto-categoria" style="background: {{ p.categoria.cor }}"></span> {{ p.categoria }}</td>
+                {% if not user.cozinha %}<td class="d-none d-lg-table-cell small">{{ p.cozinha }}</td>{% endif %}
+                <td class="text-end">{{ p.saldo|floatformat:"-3" }} {{ p.unidade }}</td>
+                <td class="text-end d-none d-sm-table-cell">{{ p.estoque_minimo|floatformat:"-3" }}</td>
+                <td>{% if p.nivel == "ZERADO" %}<span class="badge text-bg-danger">zerado</span>{% elif p.nivel == "BAIXO" %}<span class="badge text-bg-warning">baixo</span>{% else %}<span class="badge text-bg-success">ok</span>{% endif %}</td>
+                <td class="text-end text-nowrap">
+                    {% if perms.estoque.add_lote and p.ativo %}<a class="btn btn-sm btn-outline-success" href="{% url 'estoque:entrada' %}?produto={{ p.pk }}" title="Registrar entrada"><i class="bi bi-box-arrow-in-down"></i></a>{% endif %}
+                    {% if perms.estoque.change_produto %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'estoque:produto_editar' p.pk %}" title="Editar"><i class="bi bi-pencil"></i></a>{% endif %}
+                    {% if perms.estoque.delete_produto %}<a class="btn btn-sm btn-outline-danger" href="{% url 'estoque:produto_excluir' p.pk %}" title="Excluir"><i class="bi bi-trash"></i></a>{% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center text-body-secondary py-5">Nenhum produto encontrado.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+    <div class="form-check mt-2 small">
+        <a href="{% if request.GET.inativos == '1' %}{% querystring inativos=None page=None %}{% else %}{% querystring inativos=1 page=None %}{% endif %}">
+            {% if request.GET.inativos == '1' %}Ocultar{% else %}Mostrar{% endif %} produtos inativos</a>
+    </div>
+    {% include "includes/paginacao.html" %}
+</div>
+{% endblock %}
