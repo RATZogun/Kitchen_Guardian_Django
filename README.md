@@ -99,7 +99,7 @@ recrie-os para os alertas de validade ficarem atuais:
 python manage.py popular_demo --limpar
 ```
 
-Testes automatizados (43 testes: admin, regras de estoque, área do usuário e regressões):
+Testes automatizados (45 testes: admin, regras de estoque, área do usuário e regressões):
 
 ```bash
 python manage.py test
